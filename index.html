@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ResQFlow</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@1,400;1,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#080C14;--pan:rgba(24,32,48,.72);--ln:rgba(255,255,255,.09);--tx:#E8ECF4;--mu:#8A94A8;--crit:#FF3B30;--high:#FF9500;--med:#007AFF;--low:#5AC8FA;--ok:#34C759}
+*{box-sizing:border-box;margin:0}html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);font:15px/1.5 Inter,system-ui,sans-serif}
+h1,h2,.serif{font-family:Fraunces,Georgia,serif;font-style:italic;font-weight:400;letter-spacing:-.01em}
+section{position:relative}
+.hero{height:100vh;display:grid;place-items:center;text-align:center;overflow:hidden;background:linear-gradient(#0d1626,#080C14 70%)}
+.hero canvas{position:absolute;inset:0;width:100%;height:100%}
+.water{position:absolute;left:-5%;right:-5%;bottom:-30%;height:45%;background:linear-gradient(rgba(0,122,255,.25),rgba(0,122,255,.05));border-top:1px solid rgba(90,200,250,.4);border-radius:50% 50% 0 0/20px}
+.hero h1{font-size:clamp(44px,9vw,120px);line-height:1;position:relative}
+.hero p{color:var(--mu);max-width:52ch;margin:18px auto 28px;position:relative}
+.btn{background:var(--tx);color:#080C14;border:0;padding:12px 22px;border-radius:999px;font:600 14px Inter;cursor:pointer}
+.btn.g{background:transparent;color:var(--tx);border:1px solid var(--ln)}
+.pipe{height:300vh}.pin{position:sticky;top:0;height:100vh;overflow:hidden}
+.pin h2{position:absolute;top:8vh;left:0;right:0;text-align:center;font-size:clamp(28px,4.5vw,52px)}
+.chip{position:absolute;padding:8px 14px;background:var(--pan);border:1px solid var(--ln);border-radius:10px;font-size:13px;backdrop-filter:blur(8px);white-space:nowrap}
+.inc{position:absolute;left:50%;top:52%;width:min(360px,86vw);transform:translate(-50%,-50%);background:var(--pan);border:1px solid var(--crit);border-radius:14px;padding:18px;opacity:0;backdrop-filter:blur(10px)}
+.tag{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600;color:#080C14}
+.cap{position:absolute;bottom:9vh;left:0;right:0;text-align:center;color:var(--mu)}
+#app{padding:28px 20px 60px;max-width:1500px;margin:0 auto}
+.bar{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.bar h2{font-size:32px;margin-right:auto}
+.sim{background:#3a2a00;color:var(--high);border:1px solid var(--high);padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600}
+.stat{background:var(--pan);border:1px solid var(--ln);border-radius:10px;padding:6px 14px;font-size:13px}
+.stat b{font-size:18px;margin-right:6px}
+.grid{display:grid;grid-template-columns:300px 1fr 340px;gap:12px;height:620px}
+@media(max-width:1000px){.grid{grid-template-columns:1fr;height:auto}#map{height:380px}.col{max-height:360px}}
+.col,#map{background:var(--pan);border:1px solid var(--ln);border-radius:12px;overflow:auto}
+#map{overflow:hidden;min-height:300px}
+.col h3{font-size:12px;color:var(--mu);padding:12px 14px 4px;font-weight:600}
+.rep{padding:9px 14px;border-top:1px solid var(--ln);font-size:13px;animation:in .4s}
+.rep small{color:var(--mu);display:block}
+@keyframes in{from{opacity:0;transform:translateX(-10px)}}
+.q{padding:11px 14px;border-top:1px solid var(--ln);cursor:pointer;border-left:3px solid var(--c)}
+.q:hover{background:rgba(255,255,255,.04)}
+.drawer{position:fixed;top:0;right:0;width:min(440px,100vw);height:100vh;background:#0e1524;border-left:1px solid var(--ln);padding:22px;overflow:auto;transform:translateX(105%);transition:transform .35s;z-index:1000}
+.drawer.on{transform:none}
+.drawer h4{font-size:12px;color:var(--mu);margin:16px 0 6px;font-weight:600}
+.drawer li{margin-left:18px;font-size:13px}.bk{height:6px;border-radius:3px;background:var(--ln)}
+.row{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.warn{color:var(--high)}.note{color:var(--mu);font-size:12px;margin-top:10px}
+.pulse{animation:p 1.4s infinite}@keyframes p{50%{opacity:.35}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+button:focus-visible{outline:2px solid var(--low)}
+
+h1.big{background:linear-gradient(120deg,#fff 20%,#9cc6ff 50%,#fff 80%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.aur{position:absolute;inset:-20%;background:radial-gradient(40% 40% at 25% 30%,rgba(0,122,255,.38),transparent),radial-gradient(35% 35% at 78% 22%,rgba(255,59,48,.22),transparent),radial-gradient(40% 40% at 60% 85%,rgba(90,200,250,.22),transparent);filter:blur(36px);animation:dr 16s ease-in-out infinite alternate}
+@keyframes dr{to{transform:translate3d(4%,3%,0) scale(1.12)}}
+.fl{position:absolute;inset:0;background:#cfe3ff;opacity:0;mix-blend-mode:overlay;animation:fl 9s infinite}
+@keyframes fl{0%,91%,96%,100%{opacity:0}92%{opacity:.55}93%{opacity:.08}95%{opacity:.4}}
+.fb{position:absolute;padding:8px 14px;border-radius:12px;background:rgba(20,30,50,.55);border:1px solid var(--ln);backdrop-filter:blur(10px);font-size:13px;color:#cfe0ff;animation:fb 7s ease-in-out infinite alternate;box-shadow:0 10px 40px rgba(0,122,255,.15)}
+@keyframes fb{to{transform:translateY(-26px) rotate(-1.5deg)}}
+@media(max-width:800px){.fb{display:none}}
+.hero .sub{font-size:13px;color:var(--mu);position:relative;margin-top:22px}
+.mq{overflow:hidden;border-block:1px solid var(--ln);padding:16px 0;background:rgba(255,255,255,.02)}
+.mq div{display:flex;gap:46px;width:max-content;animation:mq 38s linear infinite;color:var(--mu);font-size:14px}
+.mq b{color:var(--tx);font-weight:500}@keyframes mq{to{transform:translateX(-50%)}}
+.feat{max-width:1200px;margin:0 auto;padding:110px 20px}
+.feat h2{font-size:clamp(30px,5vw,60px);text-align:center;margin-bottom:12px}.feat>p{text-align:center;color:var(--mu);margin-bottom:48px}
+.fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.fc{padding:26px;border-radius:18px;background:var(--pan);border:1px solid var(--ln);backdrop-filter:blur(10px);transition:transform .3s,border-color .3s,box-shadow .3s}
+.fc:hover{transform:translateY(-6px);border-color:rgba(90,200,250,.5);box-shadow:0 20px 60px rgba(0,122,255,.18)}
+.fc h3{font-family:Fraunces,serif;font-style:italic;font-weight:400;font-size:24px;margin-bottom:8px}.fc p{color:var(--mu);font-size:14px}
+.fc i{display:block;width:34px;height:3px;border-radius:3px;margin-bottom:16px;background:var(--k)}
+.col,#map{box-shadow:0 30px 80px rgba(0,0,0,.45)}
+#rf{display:flex;gap:8px;margin-bottom:12px}#rf input{flex:1;background:var(--pan);border:1px solid var(--ln);color:var(--tx);padding:11px 16px;border-radius:999px;font:14px Inter}
+.sim.ok{background:#0b2a17;color:var(--ok);border-color:var(--ok)}.mu{color:var(--mu);font-size:12px}
+</style></head><body>
+
+<section class="hero"><canvas id="rain"></canvas><div class="aur"></div><div class="fl"></div><div class="water"></div><span class="fb" style="left:8%;top:22%">Anna Block B la water full ah iruku</span><span class="fb" style="right:9%;top:30%;animation-delay:-2s">Bhai, do students phas gaye hain</span><span class="fb" style="left:14%;bottom:24%;animation-delay:-4s">Water level rising fast</span><span class="fb" style="right:12%;bottom:20%;animation-delay:-1s">Smoke near Block C</span>
+<div><h1 class="big">From chaos to clarity.</h1>
+<p>ResQFlow turns scattered, multilingual emergency reports into evidence-backed incidents. A person approves every response.</p>
+<button class="btn" onclick="go()">Start flood simulation</button> <button class="btn g" onclick="document.getElementById('pipe').scrollIntoView()">See how it works</button><div class="sub">Decision support for emergency operators. Not a replacement for 112.</div></div></section>
+<div class="mq"><div><span><b>Tamil-English</b> Anna Block B la water full ah iruku</span><span><b>Hindi-English</b> Bhai Block B mein do students phas gaye hain</span><span><b>English</b> Smoke from electrical panel near Block C</span><span><b>Tamil-English</b> Main road la thanni nikkuthu</span><span><b>Hindi-English</b> Block C mein dhuaan badh raha hai</span><span><b>English</b> Elderly warden stuck on first floor</span><span><b>Tamil-English</b> Anna Block B la water full ah iruku</span><span><b>Hindi-English</b> Bhai Block B mein do students phas gaye hain</span><span><b>English</b> Smoke from electrical panel near Block C</span><span><b>Tamil-English</b> Main road la thanni nikkuthu</span><span><b>Hindi-English</b> Block C mein dhuaan badh raha hai</span><span><b>English</b> Elderly warden stuck on first floor</span></div></div>
+
+<section class="pipe" id="pipe"><div class="pin">
+<h2>Six messy reports. One incident.</h2>
+<div class="chip" data-x="-34" data-y="-28">Anna Block B la water full ah iruku, 2 students stuck</div>
+<div class="chip" data-x="30" data-y="-24">Bhai Block B mein do students phas gaye hain</div>
+<div class="chip" data-x="-30" data-y="10">Water entering ground floor, Hostel Block B</div>
+<div class="chip" data-x="28" data-y="22">Water level increasing fast near Block B</div>
+<div class="chip" data-x="-6" data-y="-36">Elderly warden stuck on first floor</div>
+<div class="chip" data-x="4" data-y="34" style="border-color:var(--high)">Block B is completely safe</div>
+<div class="inc" id="incCard"><span class="tag" style="background:var(--crit)">CRITICAL</span>
+<div class="serif" style="font-size:26px;margin:8px 0">Hostel Block B flooding</div>
+<div style="color:var(--mu);font-size:13px">5 supporting reports, 1 conflicting report<br>Trapped people reported. Exact floor unknown.<br>Recommended: Rescue Team A (boat). Waiting for operator approval.</div></div>
+<div class="cap" id="cap">Scroll to merge reports</div></div></section>
+
+<section class="feat"><h2>Built so people can trust it</h2><p>Every decision shows its evidence, and a person approves every action.</p><div class="fg">
+<div class="fc" style="--k:var(--med)"><i></i><h3>Reports become incidents</h3><p>Duplicate and related reports merge by place, time and type, so operators see a few incidents instead of a flood of messages.</p></div>
+<div class="fc" style="--k:var(--crit)"><i></i><h3>Priority you can explain</h3><p>Plain code scores danger, people trapped, vulnerability, evidence and recency. The AI never picks the number.</p></div>
+<div class="fc" style="--k:var(--high)"><i></i><h3>Conflicts stay visible</h3><p>If one report says an area is safe and four say it is flooded, both are shown side by side.</p></div>
+<div class="fc" style="--k:var(--low)"><i></i><h3>Knows what is missing</h3><p>It flags the floor, headcount or location you still need and lets the operator ask for it.</p></div>
+<div class="fc" style="--k:var(--ok)"><i></i><h3>Made for how India writes</h3><p>English, Hindi-English and Tamil-English reports become the same structured incident.</p></div>
+<div class="fc" style="--k:#fff"><i></i><h3>People approve, AI recommends</h3><p>No task exists until an operator approves it, and every approval is written to the timeline with who did it.</p></div></div></section>
+<section id="app">
+<div class="bar"><h2>Command center</h2><span class="sim">SIMULATION</span><span class="sim" id="conn">Connecting…</span>
+<div class="stat"><b id="nR">0</b>reports</div><div class="stat"><b id="nI">0</b>incidents</div>
+<div class="stat"><b id="nC" style="color:var(--crit)">0</b>critical</div>
+<button class="btn" id="startBtn" onclick="start()">Start</button><button class="btn g" onclick="resetSim()">Reset</button></div>
+<form id="rf"><input name="t" placeholder="Type a live report in English, Hindi-English or Tamil-English, e.g. Bhai Block C mein dhuaan hai" autocomplete="off"><button class="btn">Submit report</button></form>
+<div class="grid"><div class="col" id="feed"><h3>Incoming reports</h3></div><div id="map"></div>
+<div class="col"><h3>Incident queue</h3><div id="queue"><div class="rep" style="color:var(--mu)">No incidents yet. </div></div>
+<h3>Resources</h3><div id="res"></div></div></div></section>
+
+<aside class="drawer" id="dr"></aside>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+/* ---------- Landing animation ---------- */
+gsap.registerPlugin(ScrollTrigger);
+(function(){const c=document.getElementById('rain'),x=c.getContext('2d');let d=[];
+function sz(){c.width=innerWidth;c.height=innerHeight;d=Array.from({length:130},()=>({x:Math.random()*c.width,y:Math.random()*c.height,l:8+Math.random()*14,v:6+Math.random()*7}))}
+sz();addEventListener('resize',sz);
+(function f(){x.clearRect(0,0,c.width,c.height);x.strokeStyle='rgba(150,190,255,.35)';x.beginPath();
+d.forEach(r=>{x.moveTo(r.x,r.y);x.lineTo(r.x-2,r.y+r.l);r.y+=r.v;if(r.y>c.height){r.y=-20;r.x=Math.random()*c.width}});x.stroke();requestAnimationFrame(f)})()})();
+gsap.to('.water',{y:-120,scrollTrigger:{trigger:'.hero',start:'top top',end:'bottom top',scrub:true}});
+const chips=document.querySelectorAll('.chip');
+chips.forEach(e=>gsap.set(e,{left:(50+ +e.dataset.x)+'%',top:(50+ +e.dataset.y)+'%',xPercent:-50,yPercent:-50}));
+const tl=gsap.timeline({scrollTrigger:{trigger:'#pipe',start:'top top',end:'bottom bottom',scrub:true}});
+chips.forEach(e=>tl.to(e,{left:'50%',top:'52%',scale:.6,opacity:0,duration:1},0.2));
+tl.to('#incCard',{opacity:1,duration:.5},1).to('#cap',{opacity:0,duration:.2},.3);
+
+/* ---------- Frontend: talks to the backend API ---------- */
+// Reports are user-supplied data. Escape them before inserting them into HTML.
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const api=(u,m='GET',b)=>fetch(u,{method:m,headers:{'Content-Type':'application/json','x-operator':'Operator'},body:b?JSON.stringify(b):undefined}).then(r=>r.json());
+let S={incidents:[],teams:[],reports:[],loc:{}},map,layer,cur=null,shown=0;
+const feed=document.getElementById('feed'),queue=document.getElementById('queue'),res=document.getElementById('res'),dr=document.getElementById('dr'),conn=document.getElementById('conn');
+async function load(){try{S=await api('/api/state');conn.textContent=S.llm?'Backend live · LLM extraction':'Backend live · rule-based extraction';conn.className='sim ok';render()}catch(e){conn.textContent='Backend offline. Run: node server.js';conn.className='sim'}}
+function start(){api('/api/simulate/start','POST')}
+function resetSim(){cur=null;shown=0;dr.classList.remove('on');api('/api/simulate/reset','POST')}
+function go(){document.getElementById('app').scrollIntoView();start()}
+document.getElementById('rf').onsubmit=async e=>{e.preventDefault();const i=e.target.t;if(!i.value.trim())return;const r=await api('/api/reports','POST',{text:i.value});if(r.error)alert(r.error);i.value=''};
+function count(el,v){gsap.to({n:+el.textContent},{n:v,duration:.6,onUpdate:function(){el.textContent=Math.round(this.targets()[0].n)}})}
+function render(){const L=S.incidents;
+ count(nR,S.reports.length);count(nI,L.length);count(nC,L.filter(i=>i.l[0]=='CRITICAL').length);
+ if(S.reports.length<shown){feed.innerHTML='<h3>Incoming reports</h3>';shown=0}
+ S.reports.slice(shown).forEach(r=>feed.insertAdjacentHTML('beforeend',`<div class="rep">${esc(r.text)}<small>${esc(r.lang||'')} · ${esc(r.type)}${r.loc?' @ '+esc(S.loc[r.loc].n):' @ location unknown'} · <i>${esc(r.src)}</i></small></div>`));shown=S.reports.length;feed.scrollTop=1e9;
+ startBtn.disabled=S.running;
+ queue.innerHTML=L.length?L.map(i=>`<div class="q" style="--c:${i.l[1]}" onclick="openD('${i.id}')"><span class="tag" style="background:${i.l[1]}">${i.l[0]}</span> <b>${i.locName||'Unverified report'}</b><div class="mu">${i.id} · ${i.type} · ${i.reps.length} reports · score ${i.sc}${i.state!='pending'?' · '+i.state:''}${i.reps.some(r=>r.safe)?' · <span class="warn">conflict</span>':''}</div></div>`).join(''):'<div class="rep mu">No incidents yet. Start the simulation or submit a report.</div>';
+ res.innerHTML=S.teams.map(t=>`<div class="rep">${t.n}<small>${t.cap} · ${t.ok?'<span style="color:var(--ok)">available</span>':'assigned'}</small></div>`).join('');
+  if(!window.M){window.M=window.L.map('map').setView([12.8228,80.0448],17);window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap contributors © CARTO',maxZoom:19}).addTo(window.M);layer=window.L.layerGroup().addTo(window.M)}
+ layer.clearLayers();L.forEach(i=>{if(!i.loc)return;window.L.circleMarker(S.loc[i.loc].p,{radius:9+i.reps.length*2,color:i.l[1],fillColor:i.l[1],fillOpacity:.45,weight:2,className:i.l[0]=='CRITICAL'?'pulse':''}).addTo(layer).bindTooltip(i.id+' · '+i.l[0]).on('click',()=>openD(i.id))});
+ S.teams.forEach(t=>window.L.circleMarker(t.p,{radius:5,color:'#34C759',fillColor:t.ok?'#34C759':'#555',fillOpacity:1,weight:1}).addTo(layer).bindTooltip(t.n));
+ if(cur)openD(cur)}
+function openD(id){cur=id;const i=S.incidents.find(x=>x.id==id);if(!i)return;const sup=i.reps.filter(r=>!r.safe),con=i.reps.filter(r=>r.safe),done=i.state!='pending';
+ dr.innerHTML=`<button class="btn g" onclick="cur=null;dr.classList.remove('on')">Close</button>
+ <div style="margin-top:14px"><span class="tag" style="background:${i.l[1]}">${i.l[0]}</span> <span class="mu">${i.id} · score ${i.sc}/100</span></div>
+ <h1 class="serif" style="font-size:32px;margin:6px 0">${i.locName||'Unverified report'} (${i.type})</h1>
+ <div class="note">Priority is calculated by the server's scoring code, not by the AI model.</div>
+ <h4>Why this priority</h4>${i.f.map(([n,p])=>`<div style="display:flex;justify-content:space-between;font-size:13px"><span>${n}</span><b>+${p}</b></div><div class="bk"><div style="height:6px;border-radius:3px;background:${i.l[1]};width:${Math.min(100,p*2.5)}%"></div></div>`).join('')}
+ <h4>Evidence (${sup.length} supporting)</h4><ul>${sup.map(r=>`<li>${esc(r.text)} <span class="mu">(${esc(r.lang||'?')}, ${esc(r.src)})</span></li>`).join('')||'<li>Insufficient evidence</li>'}</ul>
+ ${con.length?`<h4 class="warn">Conflicting report (not hidden)</h4><ul>${con.map(r=>`<li>${esc(r.text)}</li>`).join('')}</ul>`:''}
+ <h4>Missing information</h4><ul>${i.miss.map(m=>`<li>${m}</li>`).join('')||'<li>None detected</li>'}</ul>
+ <h4>Recommended response</h4>${i.rec?`<div>${i.rec.n} (${i.rec.cap}), ${i.rec.d} km away. Closest available unit with the needed equipment.</div>`:'<div class="mu">No resource recommended. Verify the report first.</div>'}
+ <div class="row">${done?`<b>Status: ${i.state}</b>`:`<button class="btn g" onclick="act('${id}','info')">Request more info</button><button class="btn g" onclick="act('${id}','reject')">Reject</button>${i.rec?`<button class="btn" onclick="act('${id}','approve')">Approve response</button>`:''}`}</div>
+ <div class="note">AI recommendations are never executed automatically. Tasks are simulated; no real service is contacted.</div>
+ <h4>Timeline</h4><ul>${i.ev.map(e=>`<li style="font-size:12px" class="mu">${esc(e)}</li>`).join('')}</ul>`;dr.classList.add('on')}
+async function act(id,a){const r=await api(`/api/incidents/${id}/${a}`,'POST');if(r.error)alert(r.error)}
+const es=new EventSource('/api/events');es.onmessage=load;es.onerror=()=>{conn.textContent='Backend offline. Run: node server.js';conn.className='sim'};
+load();
+</script></body></html>
