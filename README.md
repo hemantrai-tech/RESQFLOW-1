@@ -1,69 +1,135 @@
-# ResQFlow — From chaos to clarity
+# ResQFlow
 
-ResQFlow is an emergency-response intelligence prototype. It turns messy, multilingual reports into deduplicated incidents with visible evidence, conflicts, deterministic triage and a human review step before a simulated task is recorded.
+**ResQFlow is a disaster-response coordination prototype that turns incoming text reports into grouped incidents, transparent demo triage scores, and human-approved simulated tasks.**
 
-This refresh gives the project a long-scroll, editorial landing page inspired by the pacing and visual polish of the reference portfolio. It keeps ResQFlow’s own product story, emergency context and existing local API. The topographic landscape, connected report cards, staged incident flow and scroll reveals are original ResQFlow visuals.
+**What works in this repository:** a local Node.js app runs a 12-report flood exercise or accepts typed reports, extracts fields with rules by default, groups nearby reports, shows evidence and score factors, and lets an operator approve, reject, or request more information. Approval creates a simulated task only; it does not contact responders.
+
+**The proof and the limits:** this repository is a text-based prototype with fixed campus locations and demo resources. Voice, photo, WhatsApp, SMS, satellite messaging, Gemini, production dispatch, and validated triage are not implemented here. There is no measured accuracy result yet.
+
+## Demo and pitch deck
+
+- [Watch the silent demo video](assets/ResQFlow_demo_clean_silent.mp4)
+- [View the pitch deck](assets/ResQFlow_Pitch_Deck.pdf)
+- [Open the GitHub repository](https://github.com/hemantrai-tech/RESQFLOW-1)
+- [Open the Base44 showcase](https://resq-flow-core.base44.app/)
+
+The Base44 showcase is a separate app and may not behave like this repository. The demo video and deck are presentation materials; verify the features described below against this code. Deck concepts for voice, photos, SMS/offline delivery, Gemini, and satellite connectivity are plans or design claims, not working features in this Node.js repo. In the deck's roadmap, two-way SMS is marked as a next phase and satellite messaging as a later roadmap item.
 
 ## Run locally
 
-**Requirements:** Node.js 18 or newer. No `npm install` is needed; the server uses Node's built-in modules.
+**Requirements:** Node.js 18 or newer. No package installation is needed; the server uses Node's built-in modules.
 
-On Windows, extract the project ZIP and double-click `start-windows.bat`. It opens a browser and starts the local server. On macOS or Linux, run:
+From the project directory, run:
 
 ```sh
 npm start
 ```
 
-Open <http://127.0.0.1:3000>. Keep the server terminal open while using the site; press Ctrl+C to stop it. The local service binds to `127.0.0.1` by default.
+On Windows, you can also double-click `start-windows.bat`.
 
-The page uses Leaflet and map tiles from public CDN services and Google Fonts. A network connection is needed for those visual assets and map tiles. The site has no map API key or account requirement.
+Open <http://127.0.0.1:3000>. Keep the terminal open while using the app; press Ctrl+C to stop the server. By default, the server binds to `127.0.0.1` on port `3000`. Set `PORT` to change the port.
 
-## What the site shows
+The page loads Google Fonts, Leaflet, and map tiles from public services, so those visual assets need an internet connection. The API and the rule-based report flow run locally without an API key.
 
-- **Long-scroll story:** multilingual report intake, field extraction, deduplication, conflict review, rule-based scoring and operator approval
-- **Flood exercise:** scripted English, Hindi-English and Tamil-English reports that arrive over time
-- **Evidence-backed incidents:** source reports, conflicting reports, missing details, score factors and event history
-- **Deterministic priority:** the current repository server computes the score in code rather than asking the LLM to choose a priority
-- **Simulated resource recommendations:** units come from local demo data; the operator’s hold action records only a simulated task
-- **Interactive command center:** incoming report feed, incident queue, demo resource list and Leaflet map
-- **Accessible motion:** scroll reveals, timeline progress and ambient motion respect reduced-motion settings
+### Optional OpenAI extraction
 
-The product brief includes voice and image intake as goals. The current repository demo accepts text reports; it does not yet ingest voice or image uploads. Unknown details remain unconfirmed rather than being invented.
+By default, report extraction uses keyword and regular-expression rules in `server.js`. If `OPENAI_API_KEY` is set, the server attempts extraction through the OpenAI Chat Completions API using `gpt-4o-mini` by default. `AI_MODEL` can override the model. If the API call fails, extraction falls back to the local rules. This is not Gemini integration. Sending a report to the optional API sends its text to OpenAI; do not use real personal, medical, or emergency data.
 
-## API overview
+## What you can try
 
-| Method and path | Purpose |
-|---|---|
-| `GET /api/state` | Read reports, incidents, resources, locations and simulation status |
-| `GET /api/events` | Subscribe to local state changes using Server-Sent Events |
-| `POST /api/reports` | Extract available fields from a text report and add it to an incident queue |
-| `POST /api/simulate/start` | Start the scripted flood exercise |
-| `POST /api/simulate/reset` | Reset the local exercise and state |
-| `POST /api/incidents/:id/approve` | Record approval and create a simulated task if a compatible unit is available |
-| `POST /api/incidents/:id/reject` | Record an operator rejection |
-| `POST /api/incidents/:id/info` | Record a request for more information |
+1. Start the app and use the flood simulation to play the 12 scripted reports over time.
+2. Submit a typed report in the page, such as `Tamil-English: Block B la water full ah iruku, 2 students stuck`.
+3. Inspect the resulting incident, source reports, missing details, score factors, location, and suggested demo resource.
+4. Approve, reject, or request more information. Approval records a simulated task in local state when a compatible demo team is available.
+5. Reset the simulation to clear the local exercise state.
 
-## Triage weights in the current local demo
+The sample reports include English, Hindi-English, and Tamil-English text, plus a deliberately conflicting “safe” report and a report with no known location. The script and map locations are fixed examples, not live incident data. User-submitted reports are limited to 500 characters.
 
-The repository server uses the following configurable prototype weights: immediate danger 25; trapped people 7 each (capped at five); vulnerable people 15; supporting reports 3 each (capped at six); recent report 7; escalation 10; and affected people 0.5 each (capped at twenty). Scores are capped at 100. The prototype labels scores of 80+ Critical, 60+ High, 35+ Medium, and lower scores Low. These values are demonstration logic, not a validated emergency triage policy.
+## How this repository works
 
-## Important limitations
+| Stage | Current implementation |
+| --- | --- |
+| Intake | Typed text in the local page, or the built-in 12-report scripted exercise |
+| Extraction | Local keyword/regex rules by default; optional OpenAI extraction when configured |
+| Incident grouping | Deterministic match using report type, fixed-location proximity, and time proximity |
+| Triage | Fixed prototype weights, score factors shown in the app, and score bands |
+| Human review | Approve, reject, or request more information through local API actions |
+| Response | Demo resource recommendation and simulated task record; no external dispatch |
+| Persistence | Local `data.json` file; not a production database |
 
-- This is a hackathon prototype, not a public emergency reporting or dispatch service. For real emergencies in India, call 112.
-- The bundled GitHub server has no user authentication, roles, production database, encrypted storage or real responder integration. Its `x-operator` value is a fixed demo label, not verified identity.
-- State is saved to a local `data.json` file. Do not submit personal, medical or precise real-world emergency information.
-- All tasks and responder recommendations are simulated. No emergency service is contacted.
-- Location and resource data are fixed examples. Map points are not live caller or responder locations.
-- Optional LLM extraction uses the configured OpenAI API and sends submitted report text to that service. Do not enable it with sensitive reports.
-- Grouping, extraction and triage can be wrong or incomplete. The operator remains responsible for assessing evidence.
-- The GitHub repository's Node prototype is separate from the existing Base44 showcase. Updating this repository does not automatically change that hosted Base44 app.
+The four fixed locations are Hostel Block B, Block C, Medical Centre, and Main Road. The demo has one boat team, one medical unit, and one fire unit. Locations and units are hardcoded in `server.js`.
 
-## Project links
+## Prototype triage logic
 
-- **GitHub repository:** <https://github.com/hemantrai-tech/RESQFLOW-1>
-- **Existing Base44 showcase:** <https://resq-flow-core.base44.app/>
-- **Emergency services in India:** <https://112.gov.in/>
+The server computes a score from these configurable weights in `server.js`:
 
-## Project record
+| Factor | Weight in the prototype |
+| --- | ---: |
+| Immediate danger | 25 |
+| People trapped | 7 per person, capped at 5 |
+| Vulnerable people | 15 |
+| Supporting reports | 3 per report, capped at 6 |
+| Recent report | 7 |
+| Escalation | 10 |
+| People affected | 0.5 per person, capped at 20 |
 
-ResQFlow was developed as a 30-hour hackathon project by HACKERRS (individual entry) for the Research, Data & Build track. The landing page presents the idea and the local flood exercise; it does not claim real-world deployment or validated outcomes.
+Scores are capped at 100. Labels are Critical (80+), High (60-79), Medium (35-59), and Low (below 35). These are demo weights, not validated emergency triage guidance. They have not been evaluated against a representative, expert-labelled dataset, and no accuracy or response-time claim is made.
+
+## API
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/state` | Read reports, incidents, demo teams, fixed locations, and simulation status |
+| `GET` | `/api/events` | Subscribe to local state changes using Server-Sent Events |
+| `POST` | `/api/reports` | Extract fields from typed text and add the report to an incident |
+| `POST` | `/api/simulate/start` | Start the scripted exercise |
+| `POST` | `/api/simulate/reset` | Reset local demo state |
+| `POST` | `/api/incidents/:id/approve` | Approve an incident and record a simulated task if a compatible unit is available |
+| `POST` | `/api/incidents/:id/reject` | Record an operator rejection |
+| `POST` | `/api/incidents/:id/info` | Record a request for more information |
+
+## What's built, simulated, and planned
+
+| Capability | Status in this repository |
+| --- | --- |
+| Local command-center page and map | Built; uses fixed demo locations and public map assets |
+| Typed report intake | Built |
+| Rule-based extraction without an API key | Built; limited keyword and regex coverage, not a validated language model |
+| Tamil-English and Hindi-English demo examples | Included in the script; this does not establish broad multilingual accuracy |
+| OpenAI extraction | Optional code path; requires `OPENAI_API_KEY` and internet; not required for the basic demo |
+| Incident grouping and score calculation | Built as deterministic prototype logic; may misclassify or mis-group reports |
+| Human approve/reject/info controls | Built; actions only change local demo state |
+| Real voice, photo, WhatsApp, or SMS intake | Not built in this repo |
+| Offline or satellite messaging | Not built; satellite is a roadmap concept in the deck |
+| Gemini integration | Not built in this repo |
+| Real responder dispatch or live team locations | Not built; resource suggestions are simulated |
+| Production security, database, or validated triage | Not built |
+
+## Repository files
+
+| File | Purpose |
+| --- | --- |
+| `index.html` | Landing page and interactive demo interface |
+| `server.js` | Zero-dependency local API, demo data, extraction, grouping, scoring, and simulated review actions |
+| `package.json` | `npm start` script and Node.js engine requirement |
+| `start-windows.bat` | Windows convenience launcher |
+| `assets/ResQFlow_demo_clean_silent.mp4` | Supplied silent presentation video |
+| `assets/ResQFlow_Pitch_Deck.pdf` | Supplied pitch deck |
+
+## Limitations and safe use
+
+- This is a hackathon prototype, not an emergency reporting or dispatch service. For emergencies in India, call [112](https://112.gov.in/).
+- Do not submit personal, medical, or precise real-world emergency information. Local state is written to `data.json` without production access controls or encryption.
+- The `x-operator` request header is a caller-supplied demo label, not verified identity. The app has no user authentication or roles.
+- No emergency agency or responder is contacted. Recommendations, task records, locations, and teams are simulated.
+- Extraction, grouping, and triage can be wrong or incomplete. A person must check the source reports and details.
+- A configured OpenAI key sends submitted report text to the OpenAI API. Keep sensitive information out of this demo.
+- This repo has no real-world pilot evidence, benchmark, accuracy score, or validated triage policy.
+
+## For judges and reviewers
+
+The clearest way to verify the current build is to run it locally and follow the text-report flow above. The supplied video and deck explain the broader product vision, but claims in those materials should be treated as proposed or illustrative unless marked as implemented in this README and visible in this repository. The hosted Base44 showcase is separate from the code here; this repository does not currently provide a matching, publicly hosted version of the Node demo.
+
+## Project
+
+ResQFlow was developed as a 30-hour hackathon project by HACKERRS (individual entry) for the Research, Data & Build track. The repository contains a focused prototype and a broader product concept; it does not represent a deployed emergency service.
