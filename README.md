@@ -4,7 +4,7 @@
 
 **What works in this repository:** a local Node.js app runs a 12-report flood exercise or accepts typed reports, extracts fields with rules by default, groups nearby reports, shows evidence and score factors, and lets an operator approve, reject, or request more information. Approval creates a simulated task only; it does not contact responders.
 
-**The proof and the limits:** this repository is a text-based prototype with fixed campus locations and demo resources. Voice, photo, WhatsApp, SMS, satellite messaging, Gemini, production dispatch, and validated triage are not implemented here. There is no measured accuracy result yet.
+**The proof and the limits:** this repository is a text-based prototype with fixed campus locations and demo resources. Voice, photo, WhatsApp, SMS, satellite messaging, Gemini, production dispatch, and validated triage are not implemented here. A small handwritten sanity benchmark is included, but there is no representative accuracy result.
 
 ## Demo and pitch deck
 
@@ -44,6 +44,18 @@ By default, report extraction uses keyword and regular-expression rules in `serv
 5. Reset the simulation to clear the local exercise state.
 
 The sample reports include English, Hindi-English, and Tamil-English text, plus a deliberately conflicting “safe” report and a report with no known location. The script and map locations are fixed examples, not live incident data. User-submitted reports are limited to 500 characters.
+
+## Rule extraction sanity benchmark
+
+Run the no-key extraction benchmark with:
+
+```sh
+node scripts/benchmark-extraction.js
+```
+
+Current result: **10/10 exact field matches (100%)** on the small, handwritten fixture set in `benchmarks/report-extraction.json`. The set checks type, fixed location, language label, trapped-person count, immediate-danger flag, and explicit safe/conflict flag across English, Tamil-English, and Hindi-English examples. Two native-script examples are listed separately as unscored because Tamil-script and Devanagari semantic extraction are not implemented.
+
+This is a repeatable sanity check for the current rules, not a representative or independently labelled evaluation set. The fixtures are hand-authored, small, and overlap with the supported vocabulary. Do not present 100% as real-world accuracy. A credible accuracy claim needs a larger held-out dataset labelled by fluent speakers and emergency-response reviewers, with errors reported by language and field.
 
 ## How this repository works
 
@@ -113,6 +125,9 @@ Scores are capped at 100. Labels are Critical (80+), High (60-79), Medium (35-59
 | `server.js` | Zero-dependency local API, demo data, extraction, grouping, scoring, and simulated review actions |
 | `package.json` | `npm start` script and Node.js engine requirement |
 | `start-windows.bat` | Windows convenience launcher |
+| `scripts/benchmark-extraction.js` | Runs the repeatable local rule extraction sanity benchmark |
+| `benchmarks/report-extraction.json` | Handwritten scored benchmark fixtures |
+| `benchmarks/report-extraction-unscored.json` | Native-script examples excluded from the score because those parsers are not implemented |
 | `assets/ResQFlow_demo_clean_silent.mp4` | Supplied silent presentation video |
 | `assets/ResQFlow_Pitch_Deck.pdf` | Supplied pitch deck |
 
@@ -124,7 +139,7 @@ Scores are capped at 100. Labels are Critical (80+), High (60-79), Medium (35-59
 - No emergency agency or responder is contacted. Recommendations, task records, locations, and teams are simulated.
 - Extraction, grouping, and triage can be wrong or incomplete. A person must check the source reports and details.
 - A configured OpenAI key sends submitted report text to the OpenAI API. Keep sensitive information out of this demo.
-- This repo has no real-world pilot evidence, benchmark, accuracy score, or validated triage policy.
+- This repo has no real-world pilot evidence, representative accuracy score, or validated triage policy. Its small sanity benchmark is not a field-performance claim.
 
 ## For judges and reviewers
 
